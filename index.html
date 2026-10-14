@@ -1,0 +1,198 @@
+<!DOCTYPE html>
+<!--
+Click nbfs://nbhost/SystemFileSystem/Templates/Licenses/license-default.txt to change this license
+Click nbfs://nbhost/SystemFileSystem/Templates/Other/html.html to edit this template
+-->
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Actividad 5 - Página Web Interoperable: Tono Encoder</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: #eef2f5;
+            margin: 0;
+            padding: 20px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 90vh;
+        }
+        .container {
+            background: white;
+            width: 100%;
+            max-width: 600px;
+            padding: 30px;
+            border-radius: 12px;
+            box-shadow: 0 6px 15px rgba(0,0,0,0.1);
+            text-align: center;
+        }
+        h1 { color: #1b4f72; margin-bottom: 5px; }
+        .subtitle { color: #5d6d7e; font-size: 0.95em; margin-bottom: 25px; }
+        
+        /* Simulación visual del encoder giratorio */
+        .encoder-wheel {
+            width: 110px;
+            height: 110px;
+            border: 6px dashed #2c3e50;
+            border-radius: 50%;
+            margin: 0 auto 20px auto;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+            color: #2c3e50;
+            background: #ebf5fb;
+            transition: transform 0.1s ease;
+            user-select: none;
+        }
+
+        .dashboard {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 15px;
+            margin-bottom: 25px;
+        }
+        .card-stat {
+            background: #f8f9f9;
+            padding: 15px;
+            border-radius: 8px;
+            border-left: 4px solid #2874a6;
+            text-align: left;
+        }
+        .card-stat h3 { margin: 0 0 5px 0; font-size: 0.85em; color: #7f8c8d; }
+        .card-stat p { margin: 0; font-size: 1.15em; font-weight: bold; color: #2c3e50; }
+
+        .controls {
+            display: flex;
+            justify-content: center;
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+        .btn {
+            background: #2980b9;
+            color: white;
+            border: none;
+            padding: 12px 20px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 1em;
+            font-weight: bold;
+            transition: background 0.2s;
+        }
+        .btn:hover { background: #1f618d; }
+        
+        .btn-audio {
+            background: #27ae60;
+            width: 100%;
+            padding: 15px;
+            font-size: 1.1em;
+        }
+        .btn-audio.active { background: #c0392b; }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h1>Simulador Web: Tono Encoder</h1>
+    <div class="subtitle">Actividad 5 - Interfaz Interactiva de Control Rotatorio[cite: 1]</div>
+
+    <!-- Representación visual del encoder -->
+    <div class="encoder-wheel" id="wheel">GIRAR</div>
+
+    <!-- Botones interactivos para simular el giro físico -->
+    <div class="controls">
+        <button class="btn" onclick="girarEncoder(false)">◀ Girar Izquierda (Antihorario)</button>
+        <button class="btn" onclick="girarEncoder(true)">Girar Derecha (Horario) ▶</button>
+    </div>
+
+    <!-- Panel de información técnica en tiempo real -->
+    <div class="dashboard">
+        <div class="card-stat">
+            <h3>Pulsos del Encoder</h3>
+            <p id="txt-pulsos">0</p>
+        </div>
+        <div class="card-stat">
+            <h3>Sentido de Giro</h3>
+            <p id="txt-dir" style="color: #27ae60;">Detenido</p>
+        </div>
+        <div class="card-stat">
+            <h3>Señales A / B (Cuadratura)</h3>
+            <p id="txt-ab" style="font-size: 0.95em;">CLK: LOW | DT: LOW</p>
+        </div>
+        <div class="card-stat">
+            <h3>Frecuencia (Tono de Salida)</h3>
+            <p id="txt-freq" style="color: #2980b9;">440 Hz</p>
+        </div>
+    </div>
+
+    <!-- Botón para activar el sintetizador de audio del navegador -->
+    <button class="btn btn-audio" id="btn-audio" onclick="toggleAudio()">Iniciar Tono de Salida</button>
+</div>
+
+<script>
+    let pulsos = 0;
+    let frecuencia = 440;
+    let canalA = false;
+    let canalB = false;
+    let rotacionVisual = 0;
+
+    let audioCtx = null;
+    let oscillator = null;
+    let isPlaying = false;
+
+    function girarEncoder(horario) {
+        const wheel = document.getElementById('wheel');
+        if (horario) {
+            pulsos++;
+            frecuencia = Math.min(2500, frecuencia + 40);
+            document.getElementById('txt-dir').textContent = "Horario (Derecha)";
+            canalA = !canalA;
+            canalB = !canalA; // Simulación lógica de desfase en cuadratura
+            rotacionVisual += 30;
+        } else {
+            pulsos--;
+            frecuencia = Math.max(100, frecuencia - 40);
+            document.getElementById('txt-dir').textContent = "Antihorario (Izquierda)";
+            canalB = !canalB;
+            canalA = !canalB;
+            rotacionVisual -= 30;
+        }
+
+        // Actualizar elementos visuales
+        wheel.style.transform = `rotate(${rotacionVisual}deg)`;
+        document.getElementById('txt-pulsos').textContent = pulsos;
+        document.getElementById('txt-ab').textContent = `CLK: ${canalA ? 'HIGH' : 'LOW'} | DT: ${canalB ? 'HIGH' : 'LOW'}`;
+        document.getElementById('txt-freq').textContent = frecuencia + " Hz";
+
+        // Si el audio está activo, actualiza la frecuencia de onda al instante
+        if (isPlaying && oscillator) {
+            oscillator.frequency.setValueAtTime(frecuencia, audioCtx.currentTime);
+        }
+    }
+
+    function toggleAudio() {
+        const btn = document.getElementById('btn-audio');
+        if (!isPlaying) {
+            audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+            oscillator = audioCtx.createOscillator();
+            oscillator.type = 'square'; // Simula la señal cuadrada digital del encoder/PWM
+            oscillator.frequency.setValueAtTime(frecuencia, audioCtx.currentTime);
+            oscillator.connect(audioCtx.destination);
+            oscillator.start();
+            isPlaying = true;
+            btn.textContent = "Detener Tono de Salida";
+            btn.classList.add('active');
+        } else {
+            oscillator.stop();
+            oscillator.disconnect();
+            isPlaying = false;
+            btn.textContent = "Iniciar Tono de Salida";
+            btn.classList.remove('active');
+        }
+    }
+</script>
+
+</body>
+</html>
